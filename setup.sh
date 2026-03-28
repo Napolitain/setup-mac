@@ -11,13 +11,19 @@ info()    { echo "${GREEN}[INFO]${NC} $*" }
 warn()    { echo "${YELLOW}[WARN]${NC} $*" }
 error()   { echo "${RED}[ERROR]${NC} $*"; exit 1 }
 
+ensure_line() {
+  local line="$1"
+  local file="$2"
+  touch "$file"
+  grep -qxF "$line" "$file" || echo "$line" >> "$file"
+}
+
 # ── Homebrew ──────────────────────────────────────────────────────────────────
 if ! command -v brew &>/dev/null; then
   info "Installing Homebrew..."
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   BREW_SHELLENV='eval "$(/opt/homebrew/bin/brew shellenv)"'
-  touch "$HOME/.zprofile"
-  grep -qxF "$BREW_SHELLENV" "$HOME/.zprofile" || echo "$BREW_SHELLENV" >> "$HOME/.zprofile"
+  ensure_line "$BREW_SHELLENV" "$HOME/.zprofile"
   eval "$(/opt/homebrew/bin/brew shellenv)"
 else
   info "Homebrew already installed, updating..."
@@ -31,6 +37,8 @@ brew install --quiet \
   gh \
   node \
   eza bat zoxide btop fzf fd \
+  ripgrep jq yq git-delta uv \
+  zsh-autosuggestions zsh-syntax-highlighting \
   helix
 
 # ── Rust ─────────────────────────────────────────────────────────────────────
@@ -56,6 +64,8 @@ fi
 
 # ── Powerlevel10k ─────────────────────────────────────────────────────────────
 P10K_LINE='source $(brew --prefix)/share/powerlevel10k/powerlevel10k.zsh-theme'
+ZSH_AUTOSUGGESTIONS_LINE='source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh'
+ZSH_SYNTAX_HIGHLIGHTING_LINE='source $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh'
 
 if ! brew list powerlevel10k &>/dev/null; then
   info "Installing Powerlevel10k..."
@@ -64,8 +74,9 @@ else
   info "Powerlevel10k already installed"
 fi
 
-touch "$HOME/.zshrc"
-grep -qxF "$P10K_LINE" "$HOME/.zshrc" || echo "$P10K_LINE" >> "$HOME/.zshrc"
+ensure_line "$P10K_LINE" "$HOME/.zshrc"
+ensure_line "$ZSH_AUTOSUGGESTIONS_LINE" "$HOME/.zshrc"
+ensure_line "$ZSH_SYNTAX_HIGHLIGHTING_LINE" "$HOME/.zshrc"
 
 # ── Workspace ─────────────────────────────────────────────────────────────────
 [[ -d "$HOME/Repos" ]] || mkdir -p "$HOME/Repos"
